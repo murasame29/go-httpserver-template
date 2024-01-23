@@ -51,13 +51,13 @@ func main() {
 	l := setLogger()
 
 	// NewRelicの設定。　不要ならコメントアウトか削除してください。
-	nrApp := setNewRelic(l)
+	//nrApp := setNewRelic(l)
 
 	// サーバーの起動
 	server.New(
 		router.NewEchoServer(
 			router.WithLogger(l),
-			router.WithNewRelic(nrApp),
+			//router.WithNewRelic(nrApp),
 		),
 		server.WithLogger(l),
 		server.WithHost(config.Config.Server.Host),
