@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"github.com/murasame29/go-httpserver-template/cmd/config"
+	"github.com/murasame29/go-httpserver-template/internal/config"
 	nr "github.com/murasame29/go-httpserver-template/internal/pkg/newrelic"
 	"github.com/murasame29/go-httpserver-template/internal/router"
 	"github.com/murasame29/go-httpserver-template/internal/server"
