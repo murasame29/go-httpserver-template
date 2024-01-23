@@ -8,7 +8,6 @@ require (
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/newrelic/go-agent/v3 v3.29.0
 	github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrlogrus v1.0.0
-	github.com/newrelic/go-agent/v3/integrations/nrecho-v4 v1.0.4
 	github.com/sirupsen/logrus v1.9.3
 )
 
