@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/newrelic/go-agent/v3/integrations/nrecho-v4"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/sirupsen/logrus"
 )
@@ -54,9 +53,12 @@ func NewEchoServer(opts ...Option) http.Handler {
 		opt(router)
 	}
 
-	if router.nrApp != nil {
-		router.engine.Use(nrecho.Middleware(router.nrApp))
-	}
+	// if router.nrApp != nil {
+	// 	router.engine.Use(
+	// 		middleware.New(router.l, router.nrApp).StartTxn(),
+	// 		nrecho.Middleware(router.nrApp),
+	// 	)
+	// }
 
 	router.health()
 	router.info()
