@@ -3,7 +3,7 @@ WORKDIR /build
 
 COPY . .
 
-RUN go build -o app .
+RUN go build -o app ./cmd/app/main.go
 
 FROM ubuntu AS runner
 WORKDIR /app
