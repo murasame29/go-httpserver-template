@@ -18,5 +18,9 @@ func LoadEnv(path ...string) {
 		panic(err)
 	}
 
+	if err := env.Parse(&config.NewRelic); err != nil {
+		panic(err)
+	}
+
 	Config = config
 }
