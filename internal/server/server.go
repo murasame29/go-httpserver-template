@@ -23,36 +23,6 @@ type server struct {
 	srv *http.Server
 }
 
-type Option func(*server)
-
-// WithPort はポート番号を設定するオプションです。
-func WithPort(port int) Option {
-	return func(s *server) {
-		s.port = port
-	}
-}
-
-// WithHost はホスト名を設定するオプションです。
-func WithHost(host string) Option {
-	return func(s *server) {
-		s.host = host
-	}
-}
-
-// WithLogger はロガーを設定するオプションです。
-func WithLogger(l *logrus.Logger) Option {
-	return func(s *server) {
-		s.l = l
-	}
-}
-
-// WithShutdownTimeout はシャットダウンタイムアウトを設定するオプションです。
-func WithShutdownTimeout(timeout time.Duration) Option {
-	return func(s *server) {
-		s.shutdownTimeout = timeout
-	}
-}
-
 // Server はサーバーを表すインターフェースです。
 type Server interface {
 	Run() error
@@ -68,6 +38,7 @@ func New(handler http.Handler, opts ...Option) Server {
 		host:            "localhost",
 		shutdownTimeout: DefaultShutdownTimeout,
 		l:               logrus.New(),
+		srv:             new(http.Server),
 	}
 
 	for _, opt := range opts {
@@ -108,7 +79,7 @@ func (s *server) RunWithGracefulShutdown() {
 	defer cancel()
 
 	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, os.Kill)
+	signal.Notify(quit, os.Interrupt)
 
 	<-quit
 	if err := s.Shutdown(ctx); err != nil {
