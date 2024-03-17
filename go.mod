@@ -9,6 +9,7 @@ require (
 	github.com/newrelic/go-agent/v3 v3.29.0
 	github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrlogrus v1.0.0
 	github.com/sirupsen/logrus v1.9.3
+	golang.org/x/sync v0.6.0
 )
 
 require (
