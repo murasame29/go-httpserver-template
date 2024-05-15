@@ -53,6 +53,11 @@ func FromContext(ctx context.Context) *Logger {
 	return New(DefaultHandler(os.Stdout))
 }
 
+// IntoContext は、contextにLoggerを格納する
+func IntoContext(ctx context.Context, logger *Logger) context.Context {
+	return context.WithValue(ctx, LoggerKey{}, logger)
+}
+
 // Debug は、LogレベルDebugを出力する
 func Debug(ctx context.Context, msg string, keysAndValues ...any) {
 	FromContext(ctx).Debug(msg, keysAndValues...)
