@@ -2,13 +2,13 @@ BINARY_NAME=app
 ENV_FILE=
 
 build:
-	go mod tidy
-	go build -o bin/$(BINARY_NAME) ./cmd/$(BINARY_NAME)/main.go
+	docker compose build
 
 run: build
-	./bin/$(BINARY_NAME) -env=$(ENV_FILE)
+	docker compose up
+
+rund: build
+	docker compose up -d
 
 test:
 	go test -v ./...
-
-.PHONY: build run test

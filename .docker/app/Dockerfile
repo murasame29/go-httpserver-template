@@ -1,4 +1,4 @@
-FROM golang:1.21.4-alpine AS builder
+FROM golang:1.22.2 AS builder
 WORKDIR /build
 
 COPY . .
@@ -13,9 +13,6 @@ COPY --from=builder /build/app .
 ENV HOST=
 ENV PORT=
 ENV SHUTDOWN_TIMEOUT=
-
-ENV NEW_RELIC_APP_NAME=
-ENV NEW_RELIC_LICENSE=
 
 EXPOSE ${PORT}
 
