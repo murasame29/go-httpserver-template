@@ -1,67 +1,64 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"net/http"
+	"strings"
 
 	"github.com/murasame29/go-httpserver-template/cmd/config"
-	nr "github.com/murasame29/go-httpserver-template/internal/pkg/newrelic"
-	"github.com/murasame29/go-httpserver-template/internal/router"
+	"github.com/murasame29/go-httpserver-template/internal/container"
 	"github.com/murasame29/go-httpserver-template/internal/server"
-	"github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrlogrus"
-	"github.com/newrelic/go-agent/v3/newrelic"
-	"github.com/sirupsen/logrus"
+	"github.com/murasame29/go-httpserver-template/pkg/log"
 )
 
+type envFlag []string
+
+func (e *envFlag) String() string {
+	return strings.Join(*e, ",")
+}
+
+func (e *envFlag) Set(v string) error {
+	*e = append(*e, v)
+	return nil
+}
+
 func init() {
-	envPath := flag.String("env", "", "path to .env file")
+	// Usage: eg. go run main.go -e .env -e hoge.env -e fuga.env ...
+	var envFile envFlag
+	flag.Var(&envFile, "e", "path to .env file \n eg. -e .env -e another.env . ")
 	flag.Parse()
 
-	// 環境変数を読み込む
-	if *envPath != "" {
-		config.LoadEnv(*envPath)
-	} else {
-		config.LoadEnv()
+	if err := config.LoadEnv(envFile...); err != nil {
+		log.Fatal(context.Background(), err, "message", "Error loading .env file")
 	}
 }
-
-func setLogger() (l *logrus.Logger) {
-	l = logrus.New()
-	l.SetFormatter(&logrus.JSONFormatter{})
-	l.SetReportCaller(true)
-
-	return
-}
-
-func setNewRelic(l *logrus.Logger) (nrApp *newrelic.Application) {
-	nrApp, err := nr.NewNrApp(
-		config.Config.NewRelic.AppName,
-		config.Config.NewRelic.License,
-	)
-	if err != nil {
-		l.Fatal(err)
-	}
-
-	l.SetFormatter(nrlogrus.NewFormatter(nrApp, &logrus.JSONFormatter{}))
-
-	return nrApp
-}
-
 func main() {
-	// loggerの設定
-	l := setLogger()
+	if err := run(); err != nil {
+		log.Fatal(context.Background(), err)
+	}
+}
 
-	// NewRelicの設定。　不要ならコメントアウトか削除してください。
-	//nrApp := setNewRelic(l)
-
+func run() error {
 	// サーバーの起動
+	if err := container.NewContainer(); err != nil {
+		return err
+	}
+
+	// handler をinvoke
+	var handler http.Handler
+	if err := container.Invoke(func(h http.Handler) {
+		handler = h
+	}); err != nil {
+		return err
+	}
+
 	server.New(
-		router.NewEchoServer(
-			router.WithLogger(l),
-			//router.WithNewRelic(nrApp),
-		),
-		server.WithLogger(l),
+		handler,
 		server.WithHost(config.Config.Server.Host),
 		server.WithPort(config.Config.Server.Port),
 		server.WithShutdownTimeout(config.Config.Server.ShutdownTimeout),
-	).RunWithGracefulShutdown()
+	).RunWithGracefulShutdown(context.Background())
+
+	return nil
 }
