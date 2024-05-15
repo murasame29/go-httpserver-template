@@ -8,18 +8,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/murasame29/go-httpserver-template/pkg/log"
 	"golang.org/x/sync/errgroup"
 )
 
+// DefaultShutdownTimeout はデフォルトのシャットダウンタイムアウトです。
 const DefaultShutdownTimeout time.Duration = 10
 
+// Server はHTTPサーバーを表します。
 type Server struct {
 	port            int
 	host            string
 	shutdownTimeout time.Duration
-
-	l *logrus.Logger
 
 	srv *http.Server
 }
@@ -30,7 +30,6 @@ func New(handler http.Handler, opts ...Option) *Server {
 		port:            8080,
 		host:            "localhost",
 		shutdownTimeout: DefaultShutdownTimeout,
-		l:               logrus.New(),
 		srv:             new(http.Server),
 	}
 
@@ -47,25 +46,25 @@ func New(handler http.Handler, opts ...Option) *Server {
 }
 
 // Run はサーバーを起動します。
-func (s *Server) Run() error {
-	s.l.Infof("server starting at %s", s.srv.Addr)
+func (s *Server) Run(ctx context.Context) error {
+	log.Info(ctx, "server starting", "addr", s.srv.Addr)
 	return s.srv.ListenAndServe()
 }
 
 // Shutdown はサーバーを停止します。
 func (s *Server) Shutdown(ctx context.Context) error {
-	s.l.Infof("server shutdown ...")
+	log.Info(ctx, "server shutdown ...")
 	return s.srv.Shutdown(ctx)
 }
 
 // RunWithGracefulShutdown はgraceful shutdownを行うサーバーを起動します。
-func (s *Server) RunWithGracefulShutdown() {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGALRM)
+func (s *Server) RunWithGracefulShutdown(ctx context.Context) {
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGALRM)
 	defer stop()
 
 	errWg, errCtx := errgroup.WithContext(ctx)
 	errWg.Go(func() error {
-		if err := s.Run(); err != nil && err != http.ErrServerClosed {
+		if err := s.Run(ctx); err != nil && err != http.ErrServerClosed {
 			return fmt.Errorf("Listen And Serve error : %s", err.Error())
 		}
 
@@ -85,8 +84,8 @@ func (s *Server) RunWithGracefulShutdown() {
 
 	if err != context.Canceled &&
 		err != nil {
-		s.l.Error(err)
+		log.Error(ctx, err)
 	}
 
-	s.l.Infof("server shutdown completed")
+	log.Info(ctx, "server shutdown completed")
 }

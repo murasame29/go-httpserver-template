@@ -2,10 +2,9 @@ package server
 
 import (
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
+// Option は...(ry
 type Option func(*Server)
 
 // WithPort はポート番号を設定するオプションです。
@@ -19,13 +18,6 @@ func WithPort(port int) Option {
 func WithHost(host string) Option {
 	return func(s *Server) {
 		s.host = host
-	}
-}
-
-// WithLogger はロガーを設定するオプションです。
-func WithLogger(l *logrus.Logger) Option {
-	return func(s *Server) {
-		s.l = l
 	}
 }
 
