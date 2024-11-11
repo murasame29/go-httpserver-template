@@ -1,19 +1,19 @@
-FROM golang:1.22.2 AS builder
+FROM golang:1.23.2 AS builder
 WORKDIR /build
 
 COPY . .
 
-RUN go build -o app ./cmd/app/main.go
+RUN CGO_ENABLED=0  go build -o /build/main ./cmd/app/main.go
 
-FROM ubuntu AS runner
+FROM gcr.io/distroless/static-debian11:nonroot
 WORKDIR /app
 
-COPY --from=builder /build/app .
+COPY --from=builder /build/main /
 
-ENV HOST=
 ENV PORT=
-ENV SHUTDOWN_TIMEOUT=
 
 EXPOSE ${PORT}
 
-CMD ["./app"]
+USER 1000
+
+CMD ["/main"]
