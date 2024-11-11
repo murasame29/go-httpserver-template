@@ -45,11 +45,8 @@ func run() error {
 		return err
 	}
 
-	// handler をinvoke
-	var handler http.Handler
-	if err := container.Invoke(func(h http.Handler) {
-		handler = h
-	}); err != nil {
+	handler, err := container.Invoke[http.Handler]()
+	if err != nil {
 		return err
 	}
 
@@ -57,7 +54,6 @@ func run() error {
 		handler,
 		server.WithHost(config.Config.Server.Host),
 		server.WithPort(config.Config.Server.Port),
-		server.WithShutdownTimeout(config.Config.Server.ShutdownTimeout),
 	).RunWithGracefulShutdown(context.Background())
 
 	return nil

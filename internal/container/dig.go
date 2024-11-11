@@ -30,6 +30,13 @@ func NewContainer() error {
 }
 
 // Invoke は、 *dig.ContainerのInvokeをwrapしてる関数
-func Invoke(f any, opts ...dig.InvokeOption) error {
-	return container.Invoke(f, opts...)
+func Invoke[T any](opts ...dig.InvokeOption) (T, error) {
+	var r T
+	if err := container.Invoke(func(t T) error {
+		r = t
+		return nil
+	}, opts...); err != nil {
+		return r, err
+	}
+	return r, nil
 }

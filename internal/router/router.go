@@ -6,18 +6,13 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type router struct {
-	engine *echo.Echo
-}
-
 // NewEcho は、echo/v4 を利用した http.Handlerを返す関数です。
 func NewEcho() http.Handler {
-	router := &router{
-		engine: echo.New(),
-	}
+	engine := echo.New()
 
-	router.health()
-	router.info()
+	engine.GET("/healthz", func(c echo.Context) error {
+		return c.String(200, "OK")
+	})
 
-	return router.engine
+	return engine
 }
