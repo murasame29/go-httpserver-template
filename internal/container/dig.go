@@ -14,10 +14,12 @@ type provideArg struct {
 
 // NewContainer は、digを用いて依存注入を行う
 func NewContainer() error {
+	var noOpts []dig.ProvideOption
 	container = dig.New()
 
 	args := []provideArg{
-		{constructor: router.NewEcho, opts: []dig.ProvideOption{}},
+		{constructor: router.NewEcho, opts: noOpts},
+		// {constructor: db.NewRepository, opts: as[dai.DataAccessInterfce]()},
 	}
 
 	for _, arg := range args {
@@ -27,6 +29,10 @@ func NewContainer() error {
 	}
 
 	return nil
+}
+
+func as[T any]() []dig.ProvideOption {
+	return []dig.ProvideOption{dig.As(new(T))}
 }
 
 // Invoke は、 *dig.ContainerのInvokeをwrapしてる関数
