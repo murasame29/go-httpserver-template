@@ -3,12 +3,12 @@ package server
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/murasame29/go-httpserver-template/pkg/log"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -47,13 +47,13 @@ func New(handler http.Handler, opts ...Option) *Server {
 
 // Run はサーバーを起動します。
 func (s *Server) Run(ctx context.Context) error {
-	log.Info(ctx, "server starting", "addr", s.srv.Addr)
+	slog.Info("server starting", "addr", s.srv.Addr)
 	return s.srv.ListenAndServe()
 }
 
 // Shutdown はサーバーを停止します。
 func (s *Server) Shutdown(ctx context.Context) error {
-	log.Info(ctx, "server shutdown ...")
+	slog.Info("server shutdown ...")
 	return s.srv.Shutdown(ctx)
 }
 
@@ -65,7 +65,7 @@ func (s *Server) RunWithGracefulShutdown(ctx context.Context) {
 	errWg, errCtx := errgroup.WithContext(ctx)
 	errWg.Go(func() error {
 		if err := s.Run(ctx); err != nil && err != http.ErrServerClosed {
-			return fmt.Errorf("Listen And Serve error : %s", err.Error())
+			return fmt.Errorf("listen And Serve error : %+v", err)
 		}
 
 		return nil
@@ -84,8 +84,8 @@ func (s *Server) RunWithGracefulShutdown(ctx context.Context) {
 
 	if err != context.Canceled &&
 		err != nil {
-		log.Error(ctx, err)
+		slog.Error("context canceled", "error", err)
 	}
 
-	log.Info(ctx, "server shutdown completed")
+	slog.Info("server shutdown completed")
 }

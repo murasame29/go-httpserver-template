@@ -1,0 +1,57 @@
+name: backend test
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GOOS: linux
+  GOARCH: amd64
+  CGO_ENABLED: 0
+
+jobs:
+  build:
+    name: build test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        id: setup-go
+        with:
+          go-version-file: 'api/go.mod'
+          cache: true
+          cache-dependency-path: api/go.sum
+      
+      - name: Go Mod Download
+        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
+        run: go mod download
+
+      - name: go build
+        run: go build -o main cmd/app/main.go
+    
+  go-test:
+    name: build test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        id: setup-go
+        with:
+          go-version-file: 'api/go.mod'
+          cache: true
+          cache-dependency-path: api/go.sum
+
+      - name: Go Mod Download
+        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
+        run: go mod download
+
+      - name: Test
+        run: go test -coverprofile=coverage.out ./... -coverpkg=./... -v -json | go run github.com/mfridman/tparse@v0.16.0
