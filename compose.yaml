@@ -1,10 +1,13 @@
 services:
-  backend:
+  app:
     build:
-      context: .docker/app
-      dockerfile: local.Dockerfile
-    platform: linux/amd64
+      context: .
+      dockerfile: .docker/app/local.Dockerfile
     ports:
-      - 8080:8080
+      - "8080:8080"
     volumes:
-      - ./:/app
+      - .:/app
+    env_file:
+      - .env.template
+    environment:
+      - HOST=0.0.0.0

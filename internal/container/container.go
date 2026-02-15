@@ -1,7 +1,11 @@
 package container
 
 import (
+	"net/http"
+
+	"github.com/murasame29/go-httpserver-template/internal/config"
 	"github.com/murasame29/go-httpserver-template/internal/router"
+	"github.com/murasame29/go-httpserver-template/internal/server"
 	"go.uber.org/dig"
 )
 
@@ -12,14 +16,20 @@ type provideArg struct {
 	opts        []dig.ProvideOption
 }
 
-// NewContainer は、digを用いて依存注入を行う
-func NewContainer() error {
-	var noOpts []dig.ProvideOption
+// New は dig を用いて依存注入コンテナを初期化します。
+func New(cfg *config.Config) error {
 	container = dig.New()
 
 	args := []provideArg{
-		{constructor: router.NewEcho, opts: noOpts},
-		// {constructor: db.NewRepository, opts: as[dai.DataAccessInterfce]()},
+		// Config
+		{constructor: func() *config.Config { return cfg }},
+		{constructor: func() *config.ServerConfig { return &cfg.Server }},
+
+		// Router
+		{constructor: router.NewServeMux, opts: as[http.Handler]()},
+
+		// Server
+		{constructor: server.New},
 	}
 
 	for _, arg := range args {
@@ -35,7 +45,7 @@ func as[T any]() []dig.ProvideOption {
 	return []dig.ProvideOption{dig.As(new(T))}
 }
 
-// Invoke は、 *dig.ContainerのInvokeをwrapしてる関数
+// Invoke は *dig.Container の Invoke をラップした関数です。
 func Invoke[T any](opts ...dig.InvokeOption) (T, error) {
 	var r T
 	if err := container.Invoke(func(t T) error {

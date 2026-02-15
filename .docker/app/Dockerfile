@@ -1,19 +1,17 @@
-FROM golang:1.23.2 AS builder
-WORKDIR /build
+FROM golang:1.24-alpine AS builder
 
-COPY . .
-
-RUN CGO_ENABLED=0  go build -o /build/main ./cmd/app/main.go
-
-FROM gcr.io/distroless/static-debian11:nonroot
 WORKDIR /app
 
-COPY --from=builder /build/main /
+COPY go.mod go.sum ./
+RUN go mod download
 
-ENV PORT=
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/app
 
-EXPOSE ${PORT}
+FROM gcr.io/distroless/static-debian12
 
-USER 1000
+COPY --from=builder /app/server /server
 
-CMD ["/main"]
+EXPOSE 8080
+
+ENTRYPOINT ["/server"]

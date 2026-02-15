@@ -7,85 +7,73 @@ import (
 	"net/http"
 	"os/signal"
 	"syscall"
-	"time"
 
+	"github.com/murasame29/go-httpserver-template/internal/config"
 	"golang.org/x/sync/errgroup"
 )
 
-// DefaultShutdownTimeout はデフォルトのシャットダウンタイムアウトです。
-const DefaultShutdownTimeout time.Duration = 10
-
 // Server はHTTPサーバーを表します。
+// pkg/lifecycle.Application インターフェースを実装しています。
 type Server struct {
-	port            int
-	host            string
-	shutdownTimeout time.Duration
-
+	cfg *config.ServerConfig
 	srv *http.Server
 }
 
 // New はサーバーを生成します。
-func New(handler http.Handler, opts ...Option) *Server {
-	server := &Server{
-		port:            8080,
-		host:            "localhost",
-		shutdownTimeout: DefaultShutdownTimeout,
-		srv:             new(http.Server),
+func New(cfg *config.ServerConfig, handler http.Handler) *Server {
+	srv := &http.Server{
+		Addr:         fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
+		Handler:      handler,
+		ReadTimeout:  cfg.ReadTimeout,
+		WriteTimeout: cfg.WriteTimeout,
+		IdleTimeout:  cfg.IdleTimeout,
 	}
 
-	for _, opt := range opts {
-		opt(server)
+	return &Server{
+		cfg: cfg,
+		srv: srv,
 	}
-
-	server.srv = &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", server.host, server.port),
-		Handler: handler,
-	}
-
-	return server
 }
 
 // Run はサーバーを起動します。
 func (s *Server) Run(ctx context.Context) error {
-	slog.Info("server starting", "addr", s.srv.Addr)
-	return s.srv.ListenAndServe()
+	slog.InfoContext(ctx, "server starting", "addr", s.srv.Addr)
+	if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		return fmt.Errorf("listen and serve: %w", err)
+	}
+	return nil
 }
 
 // Shutdown はサーバーを停止します。
 func (s *Server) Shutdown(ctx context.Context) error {
-	slog.Info("server shutdown ...")
+	slog.InfoContext(ctx, "server shutting down...")
 	return s.srv.Shutdown(ctx)
 }
 
-// RunWithGracefulShutdown はgraceful shutdownを行うサーバーを起動します。
-func (s *Server) RunWithGracefulShutdown(ctx context.Context) {
-	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGALRM)
+// RunWithGracefulShutdown は graceful shutdown を行うサーバーを起動します。
+func (s *Server) RunWithGracefulShutdown(ctx context.Context) error {
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	errWg, errCtx := errgroup.WithContext(ctx)
-	errWg.Go(func() error {
-		if err := s.Run(ctx); err != nil && err != http.ErrServerClosed {
-			return fmt.Errorf("listen And Serve error : %+v", err)
-		}
+	eg, egCtx := errgroup.WithContext(ctx)
 
-		return nil
+	eg.Go(func() error {
+		return s.Run(egCtx)
 	})
 
-	errWg.Go(func() error {
-		<-errCtx.Done()
+	eg.Go(func() error {
+		<-egCtx.Done()
 
-		ctx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), s.cfg.ShutdownTimeout)
 		defer cancel()
 
-		return s.Shutdown(ctx)
+		return s.Shutdown(shutdownCtx)
 	})
 
-	err := errWg.Wait()
-
-	if err != context.Canceled &&
-		err != nil {
-		slog.Error("context canceled", "error", err)
+	if err := eg.Wait(); err != nil && err != context.Canceled {
+		return err
 	}
 
 	slog.Info("server shutdown completed")
+	return nil
 }

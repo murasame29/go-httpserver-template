@@ -4,11 +4,10 @@ import (
 	"context"
 	"flag"
 	"log/slog"
-	"net/http"
 	"os"
 	"strings"
 
-	"github.com/murasame29/go-httpserver-template/cmd/config"
+	"github.com/murasame29/go-httpserver-template/internal/config"
 	"github.com/murasame29/go-httpserver-template/internal/container"
 	"github.com/murasame29/go-httpserver-template/internal/server"
 )
@@ -25,29 +24,28 @@ func (e *envFlag) Set(v string) error {
 }
 
 func parseLogLevel(l string) slog.Level {
-	switch {
-	case strings.EqualFold(l, "debug") || strings.EqualFold(l, "DEBUG"):
+	switch strings.ToLower(l) {
+	case "debug":
 		return slog.LevelDebug
-	case strings.EqualFold(l, "info") || strings.EqualFold(l, "INFO"):
+	case "info":
 		return slog.LevelInfo
-	case strings.EqualFold(l, "warn") || strings.EqualFold(l, "WARN"):
+	case "warn":
 		return slog.LevelWarn
-	case strings.EqualFold(l, "error") || strings.EqualFold(l, "ERROR"):
+	case "error":
 		return slog.LevelError
 	default:
 		return slog.LevelDebug
 	}
 }
 
-func init() {
-	// Usage: eg. go run main.go -e .env -e hoge.env -e fuga.env ...
+func main() {
 	var (
 		envFile  envFlag
 		logLevel string
 	)
 
-	flag.Var(&envFile, "e", "path to .env file \n eg. -e .env -e another.env . ")
-	flag.StringVar(&logLevel, "ll", "debug", "Change the loglevel. The default is debug .")
+	flag.Var(&envFile, "e", "path to .env file (e.g. -e .env -e another.env)")
+	flag.StringVar(&logLevel, "ll", "debug", "log level (debug, info, warn, error)")
 	flag.Parse()
 
 	slog.SetDefault(
@@ -56,33 +54,26 @@ func init() {
 		})),
 	)
 
-	if err := config.LoadEnv(envFile...); err != nil {
-		slog.Error("failed to laod env", "error", err)
-	}
-}
-
-func main() {
-	if err := run(); err != nil {
+	if err := run(envFile); err != nil {
 		slog.Error("failed to run application", "error", err)
+		os.Exit(1)
 	}
 }
 
-func run() error {
-	// サーバーの起動
-	if err := container.NewContainer(); err != nil {
-		return err
-	}
-
-	handler, err := container.Invoke[http.Handler]()
+func run(envFiles []string) error {
+	cfg, err := config.Load(envFiles...)
 	if err != nil {
 		return err
 	}
 
-	server.New(
-		handler,
-		server.WithHost(config.Config.Server.Host),
-		server.WithPort(config.Config.Server.Port),
-	).RunWithGracefulShutdown(context.Background())
+	if err := container.New(cfg); err != nil {
+		return err
+	}
 
-	return nil
+	srv, err := container.Invoke[*server.Server]()
+	if err != nil {
+		return err
+	}
+
+	return srv.RunWithGracefulShutdown(context.Background())
 }
