@@ -1,6 +1,14 @@
-FROM golang:1.22.2 AS app
+FROM golang:1.24-alpine
+
 WORKDIR /app
 
-RUN go install github.com/cosmtrek/air@latest
+RUN go install github.com/air-verse/air@latest
 
-CMD ["air","-c",".docker/app/.air.toml"]
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+EXPOSE 8080
+
+CMD ["air", "-c", ".docker/app/.air.toml"]
